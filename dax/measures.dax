@@ -1,0 +1,79 @@
+// =====================================================================
+// Retail Sales Dashboard - DAX measures
+// Create a blank table named _Measures and paste each measure into it.
+// =====================================================================
+
+// ---------- Core ----------
+Total Sales = SUM ( fact_sales[NetSales] )
+Total COGS = SUM ( fact_sales[COGS] )
+Gross Profit = [Total Sales] - [Total COGS]
+Gross Margin % = DIVIDE ( [Gross Profit], [Total Sales] )
+Units Sold = SUM ( fact_sales[Quantity] )
+Orders = DISTINCTCOUNT ( fact_sales[OrderID] )
+Average Order Value = DIVIDE ( [Total Sales], [Orders] )
+Active Customers = DISTINCTCOUNT ( fact_sales[CustomerKey] )
+Discount Given = SUM ( fact_sales[GrossAmount] ) - [Total Sales]
+
+// ---------- Returns ----------
+Returned Sales =
+CALCULATE ( [Total Sales], fact_sales[Returned] = TRUE () )
+Return Rate % = DIVIDE ( [Returned Sales], [Total Sales] )
+
+// ---------- Time intelligence (requires dim_date marked as date table) ----------
+Sales PY =
+CALCULATE ( [Total Sales], SAMEPERIODLASTYEAR ( dim_date[Date] ) )
+Sales YoY % = DIVIDE ( [Total Sales] - [Sales PY], [Sales PY] )
+Sales YTD = TOTALYTD ( [Total Sales], dim_date[Date] )
+Sales PY YTD =
+CALCULATE ( [Sales YTD], SAMEPERIODLASTYEAR ( dim_date[Date] ) )
+Sales MTD = TOTALMTD ( [Total Sales], dim_date[Date] )
+Sales Rolling 3M =
+CALCULATE (
+    [Total Sales],
+    DATESINPERIOD ( dim_date[Date], MAX ( dim_date[Date] ), -3, MONTH )
+)
+Sales 30D Moving Avg =
+AVERAGEX (
+    DATESINPERIOD ( dim_date[Date], MAX ( dim_date[Date] ), -30, DAY ),
+    [Total Sales]
+)
+
+// ---------- Ranking & contribution ----------
+Product Rank =
+RANKX ( ALL ( dim_product[Product] ), [Total Sales], , DESC, DENSE )
+Category Share % =
+DIVIDE ( [Total Sales], CALCULATE ( [Total Sales], ALL ( dim_product[Category] ) ) )
+Store Share % =
+DIVIDE ( [Total Sales], CALCULATE ( [Total Sales], ALL ( dim_store ) ) )
+
+// Pareto: cumulative share of sales by product (for an 80/20 chart)
+Pareto Cumulative % =
+VAR CurrentSales = [Total Sales]
+VAR Cumulative =
+    SUMX (
+        FILTER (
+            ALL ( dim_product[Product] ),
+            [Total Sales] >= CurrentSales
+        ),
+        [Total Sales]
+    )
+RETURN
+    DIVIDE ( Cumulative, CALCULATE ( [Total Sales], ALL ( dim_product[Product] ) ) )
+
+// ---------- Customers ----------
+New Customers =
+VAR CustomersNow = VALUES ( fact_sales[CustomerKey] )
+VAR FirstDateInContext = MIN ( dim_date[Date] )
+RETURN
+    COUNTROWS (
+        FILTER (
+            CustomersNow,
+            CALCULATE ( MIN ( dim_date[Date] ), ALL ( dim_date ) ) >= FirstDateInContext
+        )
+    )
+Sales per Customer = DIVIDE ( [Total Sales], [Active Customers] )
+
+// ---------- Formatting helpers ----------
+KPI Color YoY =
+SWITCH ( TRUE (), [Sales YoY %] >= 0.05, "#1A9E5C", [Sales YoY %] >= 0, "#E0A100", "#D64545" )
+Sales Title = "Net Sales: " & FORMAT ( [Total Sales], "#,0" ) & " PKR"
