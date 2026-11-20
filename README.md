@@ -6,6 +6,8 @@
 ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
 ![CI](https://github.com/asad110abbas/retail-sales-powerbi-dashboard/actions/workflows/ci.yml/badge.svg)
 
+> 🌌 Part of **[BRIHA AI World](https://github.com/asad110abbas)**, the AI-driven portfolio of Syed Asad Abbas.
+
 An end-to-end **Power BI** sales analytics solution for a multi-region electronics retailer: a star-schema data
 model, 30+ reusable **DAX** measures (time intelligence, Pareto, ranking, customer metrics), **Power Query (M)**
 loaders and a custom report theme. The data is generated with Python, so the whole project is reproducible.
